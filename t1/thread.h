@@ -197,7 +197,7 @@ private:
     static Thread * volatile _running;
     static Queue _ready;
     static Queue _suspended;
-	static Queue _waiting;
+	Queue _waiting;
 };
 
 __END_SYS

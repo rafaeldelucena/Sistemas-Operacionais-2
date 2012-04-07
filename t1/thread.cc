@@ -13,7 +13,6 @@ __BEGIN_SYS
 // Class attributes
 Thread * volatile Thread::_running;
 Thread::Queue Thread::_ready;
-Thread::Queue Thread::_waiting;
 Thread::Queue Thread::_suspended;
 
 // Methods
@@ -149,6 +148,7 @@ void Thread::exit(int status)
 	while(!_waiting.empty()) {
 		Thread * thread = _waiting.remove()->object();
 		_suspended.remove(thread);
+		thread->_state = READY;
 		_ready.insert(&thread->_link);
 	}
 
