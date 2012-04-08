@@ -30,12 +30,14 @@ protected:
 
     // Thread operations
     void sleep() {
-	if(!busy_waiting)
+	if(!busy_waiting) {
     		Thread * running = Thread::running();
 		_sleep->insert(running->_link);
 		running->suspend();
 
-	}
+	} 
+    }
+    
     void wakeup() {
 	if(!busy_waiting && !_sleep->empty()) {
 		Thread * waked = _sleep->remove(this->_link);
