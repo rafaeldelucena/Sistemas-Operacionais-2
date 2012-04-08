@@ -38,7 +38,7 @@ public:
         RUNNING,
         READY,
         SUSPENDED,
-		FINISHING
+	FINISHING
     };
 
     typedef short Priority;
@@ -197,8 +197,7 @@ private:
     static Thread * volatile _running;
     static Queue _ready;
     static Queue _suspended;
-	static Queue _sleep;
-	Queue _waiting;
+    static Queue _waiting;
 };
 
 __END_SYS
