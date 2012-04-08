@@ -31,25 +31,25 @@ protected:
     // Thread operations
     void sleep() {
 	if(!busy_waiting)
-    	Thread * running = Thread::running();
+    		Thread * running = Thread::running();
 		_sleep->insert(running->_link);
 		running->suspend();
 
 	}
     void wakeup() {
-		if(!busy_waiting) {
-			Thread * waked = _sleep->remove(this->_link);
+	if(!busy_waiting && !_sleep->empty()) {
+		Thread * waked = _sleep->remove(this->_link);
+		waked->resume();
+    	}
+    }
+    
+    void wakeup_all() {
+	if(!busy_waiting) {
+		while(!_sleep->empty())	{
+			Thread * waked = _sleep->remove();
 			waked->resume();
 		}
 	}
-    void wakeup_all() {
-		if(!busy_waiting) {
-			while(!_sleep->empty())
-			{
-				Thread * waked = _sleep->remove();
-				waked->resume();
-			}
-		}
     }
 };
 
