@@ -137,6 +137,7 @@ public:
     ~Thread() {
 	_ready.remove(this);
 	_suspended.remove(this);
+	_sleep.remove(this);
 	_waiting.remove(this);
 	free(_stack);
     }
@@ -183,6 +184,7 @@ private:
 	    CPU::int_enable();
     }
 
+	void release_waiting();
     static void implicit_exit() { exit(CPU::fr()); }
     static void reschedule() { yield(); }
     static void idle();
@@ -197,8 +199,8 @@ private:
     static Thread * volatile _running;
     static Queue _ready;
     static Queue _suspended;
-	static Queue _sleep;
-	Queue _waiting;
+    static Queue _sleep;
+    Queue _waiting;
 };
 
 __END_SYS

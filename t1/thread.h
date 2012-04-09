@@ -38,7 +38,7 @@ public:
         RUNNING,
         READY,
         SUSPENDED,
-	FINISHING
+		FINISHING
     };
 
     typedef short Priority;
@@ -183,6 +183,7 @@ private:
 	    CPU::int_enable();
     }
 
+	void release_waiting();
     static void implicit_exit() { exit(CPU::fr()); }
     static void reschedule() { yield(); }
     static void idle();
@@ -197,7 +198,7 @@ private:
     static Thread * volatile _running;
     static Queue _ready;
     static Queue _suspended;
-	Queue _waiting;
+    Queue _waiting;
 };
 
 __END_SYS

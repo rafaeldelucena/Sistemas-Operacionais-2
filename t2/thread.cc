@@ -107,6 +107,14 @@ void  Thread::resume() {
 	CPU::int_enable();
 }
 
+void Thread::release_waiting()
+{
+	while(!_waiting.empty())
+	{
+		_waiting.remove()->object()->resume();
+	}
+}
+
 void Thread::yield() {
     db<Thread>(TRC) << "Thread::yield()\n";
     if(Traits::active_scheduler)
@@ -143,15 +151,10 @@ void Thread::exit(int status)
     if(_ready.empty() && !_suspended.empty())
 	idle(); // implicitly re-enables interrupts
 
+	_running->release_waiting();
+
     if(Traits::active_scheduler)
 	CPU::int_disable();
-	
-	while(!_waiting.empty()) {
-		Thread * thread = _waiting.remove()->object();
-		_suspended.remove(thread);
-		thread->_state = READY;
-		_ready.insert(&thread->_link);
-	}
 
     if(!_ready.empty()) {
 	Thread * old = _running;
