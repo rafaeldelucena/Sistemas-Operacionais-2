@@ -145,40 +145,40 @@ void Thread::exit(int status)
     db<Thread>(TRC) << "Thread::exit(status=" << status << ")\n";
 
     if(Traits::active_scheduler)
-	CPU::int_disable();
+		CPU::int_disable();
 
     if(_ready.empty() && !_suspended.empty())
-	idle(); // implicitly re-enables interrupts
+		idle(); // implicitly re-enables interrupts
+
+    if(Traits::active_scheduler)
+		CPU::int_disable();
 
 	_running->release_waiting();
 
-    if(Traits::active_scheduler)
-	CPU::int_disable();
+	if(!_ready.empty()) {
+		Thread * old = _running;
+		old->_state = FINISHING;
+		*((int *)(void *)old->_stack) = status;
 
-    if(!_ready.empty()) {
-	Thread * old = _running;
-	old->_state = FINISHING;
-	*((int *)(void *)old->_stack) = status;
+		_running = _ready.remove()->object();
+		_running->_state = RUNNING;
 
-	_running = _ready.remove()->object();
-	_running->_state = RUNNING;
+	// 	old->_context->save(); // can be used to force an update
+		db<Thread>(INF) << "old={" << old << "," 
+				<< *old->_context << "}\n";
+		db<Thread>(INF) << "new={" << _running << "," 
+				<< *_running->_context << "}\n";
 
-// 	old->_context->save(); // can be used to force an update
-	db<Thread>(INF) << "old={" << old << "," 
-			<< *old->_context << "}\n";
-	db<Thread>(INF) << "new={" << _running << "," 
-			<< *_running->_context << "}\n";
-
-	CPU::switch_context(&old->_context, _running->_context);
+		CPU::switch_context(&old->_context, _running->_context);
     } else {
-	db<Thread>(WRN) << "The last thread in the system has exited!\n";
-	db<Thread>(WRN) << "Halting the CPU ...\n";
+		db<Thread>(WRN) << "The last thread in the system has exited!\n";
+		db<Thread>(WRN) << "Halting the CPU ...\n";
     	CPU::int_disable();
-	CPU::halt(); // this must be turned into a conf-feature (reboot, halt)
+		CPU::halt(); // this must be turned into a conf-feature (reboot, halt)
     }
 
     if(Traits::active_scheduler)
-	CPU::int_enable();
+		CPU::int_enable();
 }
 
 void Thread::idle()
