@@ -14,7 +14,6 @@ __BEGIN_SYS
 Thread * volatile Thread::_running;
 Thread::Queue Thread::_ready;
 Thread::Queue Thread::_suspended;
-Thread::Queue Thread::_sleep;
 
 // Methods
 int Thread::join() {
