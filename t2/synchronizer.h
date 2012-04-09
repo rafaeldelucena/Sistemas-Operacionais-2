@@ -14,13 +14,14 @@
 
 __BEGIN_SYS
 
-class Synchronizer_Common
-{
+class Synchronizer_Common {
+
 protected:
     Synchronizer_Common() {}
     
 private:
     static const bool busy_waiting = Traits<Thread>::busy_waiting;
+    Queue<Thread> _sleeping;
 
 protected:
     // Atomic operations
@@ -30,26 +31,29 @@ protected:
 
     // Thread operations
     void sleep() {
-	if(!busy_waiting)
-    	Thread * running = Thread::running();
-		_sleep->insert(running->_link);
+	if(!busy_waiting) {
+    		Thread * running = Thread::running();
+		_sleeping.insert(new Queue<Thread>::Element(running));
 		running->suspend();
-
-	}
+	} 
+    }
+    
     void wakeup() {
-		if(!busy_waiting) {
-			Thread * waked = _sleep->remove(this->_link);
+	if(!busy_waiting) {
+		if (!_sleeping.empty()) {
+			Thread * waked = _sleeping.remove()->object();
+			waked->resume();
+    		}
+    	}
+    }	
+    
+    void wakeup_all() {
+	if(!busy_waiting) {
+		while(!_sleeping.empty())	{
+			Thread * waked = _sleeping.remove()->object();
 			waked->resume();
 		}
 	}
-    void wakeup_all() {
-		if(!busy_waiting) {
-			while(!_sleep->empty())
-			{
-				Thread * waked = _sleep->remove();
-				waked->resume();
-			}
-		}
     }
 };
 
