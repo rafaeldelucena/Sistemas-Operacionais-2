@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type" />
+		<link href="http://www.lisha.ufsc.br/%7Eguto/teaching/style.css" rel="stylesheet" type="text/css" />
+		<title>Idle-waiting Thread Synchronization</title>
+	</head>
+	<body>
+		<h1 align="center">
+			Idle-waiting Thread Synchronization</h1>
+		<p>
+			Similarly to the <samp><a href="join.html">join</a></samp> method, the initial version of EPOS-- you are currently working with implements thread synchronization with a simple trick:</p>
+		<table border="0" width="100%">
+			<tbody>
+				<tr>
+					<td align="right" width="1%">
+						<font color="#cc0000"><code lang="c">1.<br />
+						2.<br />
+						3.<br />
+						4.<br />
+						5.<br />
+						6.<br />
+						7.<br />
+						8.<br />
+						9.<br />
+						10.<br />
+						11.<br />
+						12.<br />
+						13. </code></font></td>
+					<td>
+						<code lang="c">class Synchronizer_Common<br />
+						{<br />
+						protected:<br />
+						&nbsp; &nbsp;Synchronizer_Common() {}<br />
+						<br />
+						protected:<br />
+						&nbsp; &nbsp;void sleep() {<br />
+						&nbsp; &nbsp;&nbsp; &nbsp;Thread::yield();<br />
+						&nbsp; &nbsp;}<br />
+						<br />
+						&nbsp; &nbsp;void wakeup() {}<br />
+						&nbsp; &nbsp;void wakeup_all() {}<br />
+						}; </code></td>
+				</tr>
+			</tbody>
+		</table>
+		<p>
+			That is, synchronization abstractions such as <samp>Semaphore</samp> and <samp>Mutex</samp> continuously test for changes on a control variable, invoking <samp>yield</samp> after each test (line 2). This trick allows for empty implementations of <samp>wakeup</samp> and <samp>wakeup_all</samp>, but bears little predictability and performance.</p>
+		<h3>
+			To do</h3>
+		<p>
+			You are requested to modify the implementation of thread synchronization so that waiting threads no longer waste time sampling control variables and that scheduling is not affected by its implementation.</p>
+		<p>
+			<strong>Solution:</strong></p>
+		<p>
+			Para esse problema, foi utilizada uma solu&ccedil;&atilde;o parecida com a a solu&ccedil;&atilde;o utilizada no problema anterior do Thread::join().<br />
+			<br />
+			Foi criada um fila adicional _sleep na classe Synchronizer_Common que cont&eacute;m informa&ccedil;&otilde;es sobre quais as threads que est&atilde;o dormindo.</p>
+		<p>
+			Toda vez que a chamada sleep() &eacute; feita, a Thread que a chamou &eacute; adicionada nessa fila _sleep e ap&oacute;s isso, a sua execu&ccedil;&atilde;o &eacute; suspensa (atrav&eacute;s da chamada suspend()).</p>
+		<p>
+			Quando a chamada wakeup() &eacute; feita, a Thread &eacute; removida da fila _sleep e realiza um resume (atraves da chamada resume()) para que possa retomar a sua execu&ccedil;&atilde;o. O m&eacute;todo wakeup_all() retira todas as threads da fila _sleep e as resume.</p>
+		<p>
+			Foram feitas as seguintes altera&ccedil;&otilde;es no c&oacute;digo:</p>
+		<p>
+			<strong>synchronizer.h</strong></p>
+		<p>
+			<font color="#a52829"><b>private</b></font>:<br />
+			&nbsp;&nbsp;&nbsp; Queue&lt;Thread&gt; _sleeping;<br />
+			<br />
+			&nbsp; &nbsp; <font color="#0000ff">// Thread operations</font><br />
+			&nbsp;&nbsp;&nbsp;&nbsp;<font color="#298a52"><b>void</b></font>&nbsp;sleep() {<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#a52829"><b>if</b></font> (!busy_waiting) {<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Thread * running = Thread::running();<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_sleeping.insert(<font color="#a52829"><b>new</b></font>&nbsp;Queue&lt;Thread&gt;::Element(running));<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;running-&gt;suspend();<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;}<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;<font color="#298a52"><b>void</b></font>&nbsp;wakeup() {<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#a52829"><b>if</b></font>(!busy_waiting) {<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#a52829"><b>if</b></font>&nbsp;(!_sleeping.empty()) {<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Thread * waked = _sleeping.remove()-&gt;object();<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;waked-&gt;resume();<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;}<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;<font color="#298a52"><b>void</b></font>&nbsp;wakeup_all() {<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#a52829"><b>if</b></font>(!busy_waiting) {<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#a52829"><b>while</b></font>(!_sleeping.empty()) {<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Thread * waked = _sleeping.remove()-&gt;object();<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;waked-&gt;resume();<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+			&nbsp;&nbsp;&nbsp;&nbsp;}<br />
+			<br />
+			Grupo:<br />
+			Luis Henrique Mulinari<br />
+			Pedro Artur Figueiredo Vitti<br />
+			Rafael de Lucena Valle</p>
+		<p>
+			http://htmleditor.in/index.html</p>
+	</body>
+</html>
+
