@@ -31,31 +31,34 @@ protected:
 
     // Thread operations
     void sleep() {
-	if(!busy_waiting) {
-    	Thread * running = Thread::running();
-		_sleeping.insert(new Queue<Thread>::Element(running));
-		running->suspend();
-	} 
+		if(!busy_waiting) {
+			Thread * running = Thread::running();
+			_sleeping.insert(new Queue<Thread>::Element(running));
+			running->wheres(&sleeping);
+			running->suspend();
+		} 
     }
     
     void wakeup() {
 	if(!busy_waiting) {
 		if (!_sleeping.empty()) {
 			Thread * waked = _sleeping.head()->object();
+			waked->wheres(0);
 			waked->resume();
-			delete _sleeping.remove();
+			delete _sleeping->remove();
     		}
     	}
     }	
     
     void wakeup_all() {
-	if(!busy_waiting) {
-		while(!_sleeping.empty())	{
+		if(!busy_waiting) {
+			while(!_sleeping.empty()) {
 			Thread * waked = _sleeping.head()->object();
+			waked->wheres(0);
 			waked->resume();
-			delete _sleeping.resume();
+			delete _sleeping->remove();
+			}
 		}
-	}
     }
 };
 

@@ -135,9 +135,15 @@ public:
 	body();
     }
     ~Thread() {
-	_ready.remove(this);
-	_suspended.remove(this);
-	_waiting.remove(this);
+	if(_state == RUNNING)
+		exit();
+	if(_state == READY)
+		_ready.remove(this);
+	if(_state == SUSPENDED)
+		_suspended.remove(this);
+	release_waiting();
+	if(_wheres != 0)
+		_wheres->remove(this);
 	free(_stack);
     }
 
@@ -149,6 +155,7 @@ public:
     void pass();
     void suspend();
     void resume();
+	void wheres(Queue * wheres) { _wheres = wheres}
 
     static void yield();
     static void exit(int status = 0);
@@ -199,6 +206,7 @@ private:
     static Queue _ready;
     static Queue _suspended;
     Queue _waiting;
+	Queue * _wheres;
 };
 
 __END_SYS
